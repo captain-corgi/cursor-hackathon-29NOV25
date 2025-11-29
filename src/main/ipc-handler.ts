@@ -11,8 +11,18 @@ import { IPC_CHANNELS, AppSettings } from '../shared/types';
  */
 export class IPCHandler {
   private windows: Set<BrowserWindow> = new Set();
+  private initialized: boolean = false;
 
   constructor() {
+    // Don't initialize in constructor - must wait for app to be ready
+  }
+
+  /**
+   * Initialize IPC handlers (must be called after app is ready)
+   */
+  initialize(): void {
+    if (this.initialized) return;
+    this.initialized = true;
     this.setupHandlers();
     this.setupStateListeners();
   }

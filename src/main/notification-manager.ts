@@ -1,4 +1,4 @@
-import { Notification, nativeImage, app } from 'electron';
+import { Notification, nativeImage } from 'electron';
 import path from 'path';
 
 /**

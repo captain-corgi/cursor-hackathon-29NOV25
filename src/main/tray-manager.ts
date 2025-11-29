@@ -1,5 +1,6 @@
 import { Tray, Menu, nativeImage, MenuItemConstructorOptions } from 'electron';
 import path from 'path';
+import { ProviderStats, MenuBarStats } from '../shared/types';
 
 export interface TrayManagerCallbacks {
   onOpenDashboard: () => void;
@@ -12,10 +13,41 @@ export class TrayManager {
   private tray: Tray | null = null;
   private callbacks: TrayManagerCallbacks;
   private isAlertState: boolean = false;
+  private currentStats: MenuBarStats;
 
   constructor(callbacks: TrayManagerCallbacks) {
     this.callbacks = callbacks;
+    // Initialize with mock data
+    this.currentStats = this.getMockStats();
     this.initialize();
+  }
+
+  /**
+   * Get mock data for demonstration
+   */
+  private getMockStats(): MenuBarStats {
+    return {
+      providers: [
+        {
+          name: 'Cursor',
+          balance: '2 left',
+          requestUsed: '18/20',
+          plan: 'Pro',
+          billingPeriod: '1 Nov 2025 - 1 Dec 2025',
+          isActive: true,
+        },
+        {
+          name: 'Claude Code',
+          balance: '1 used',
+          requestUsed: '1',
+          plan: 'Pay-As-You-Go',
+          billingPeriod: '1 Nov 2025 - 1 Dec 2025',
+          isActive: true,
+        },
+      ],
+      isMockData: true,
+      lastUpdated: new Date(),
+    };
   }
 
   private initialize(): void {
@@ -24,11 +56,12 @@ export class TrayManager {
     this.tray = new Tray(icon);
 
     // Set initial tooltip
-    this.updateTooltip('AI Usage: $0.00 today');
+    this.updateTooltip('AI Tool Stats');
 
-    // Build context menu
+    // Build context menu with stats
     this.updateContextMenu();
 
+    // Click opens menu (default behavior on macOS)
     // Double-click opens dashboard
     this.tray.on('double-click', () => {
       this.callbacks.onOpenDashboard();
@@ -109,29 +142,95 @@ export class TrayManager {
   }
 
   private updateContextMenu(): void {
-    const menuTemplate: MenuItemConstructorOptions[] = [
-      {
-        label: 'Open Dashboard',
-        click: () => this.callbacks.onOpenDashboard(),
-      },
-      { type: 'separator' },
-      {
-        label: 'Refresh',
-        click: () => this.callbacks.onRefresh(),
-      },
-      {
-        label: 'Settings...',
-        click: () => this.callbacks.onOpenSettings(),
-      },
-      { type: 'separator' },
-      {
-        label: 'Quit',
-        click: () => this.callbacks.onQuit(),
-      },
-    ];
+    const menuTemplate: MenuItemConstructorOptions[] = [];
+
+    // Add provider stats
+    for (const provider of this.currentStats.providers) {
+      // Provider name with icon
+      const providerIcon = provider.name === 'Cursor' ? '💻' : '🤖';
+      menuTemplate.push({
+        label: `${providerIcon}  ${provider.name}`,
+        enabled: false,
+      });
+
+      // Balance
+      menuTemplate.push({
+        label: `    Balance: ${provider.balance}`,
+        enabled: false,
+      });
+
+      // Request used
+      menuTemplate.push({
+        label: `    Request used: ${provider.requestUsed}`,
+        enabled: false,
+      });
+
+      // Plan
+      menuTemplate.push({
+        label: `    Plan: ${provider.plan}`,
+        enabled: false,
+      });
+
+      // Billing Period
+      menuTemplate.push({
+        label: `    Billing Period: ${provider.billingPeriod}`,
+        enabled: false,
+      });
+
+      menuTemplate.push({ type: 'separator' });
+    }
+
+    // Action items
+    menuTemplate.push({
+      label: 'Open Dashboard',
+      click: () => this.callbacks.onOpenDashboard(),
+    });
+
+    menuTemplate.push({
+      label: 'Refresh',
+      accelerator: 'CmdOrCtrl+R',
+      click: () => this.callbacks.onRefresh(),
+    });
+
+    menuTemplate.push({
+      label: 'Settings...',
+      accelerator: 'CmdOrCtrl+,',
+      click: () => this.callbacks.onOpenSettings(),
+    });
+
+    menuTemplate.push({ type: 'separator' });
+
+    menuTemplate.push({
+      label: 'Quit',
+      accelerator: 'CmdOrCtrl+Q',
+      click: () => this.callbacks.onQuit(),
+    });
 
     const contextMenu = Menu.buildFromTemplate(menuTemplate);
     this.tray?.setContextMenu(contextMenu);
+  }
+
+  /**
+   * Update the stats displayed in the menu
+   */
+  public updateStats(stats: MenuBarStats): void {
+    this.currentStats = stats;
+    this.updateContextMenu();
+  }
+
+  /**
+   * Update stats for a specific provider
+   */
+  public updateProviderStats(providerName: string, stats: Partial<ProviderStats>): void {
+    const providerIndex = this.currentStats.providers.findIndex(p => p.name === providerName);
+    if (providerIndex >= 0) {
+      this.currentStats.providers[providerIndex] = {
+        ...this.currentStats.providers[providerIndex],
+        ...stats,
+      };
+      this.currentStats.lastUpdated = new Date();
+      this.updateContextMenu();
+    }
   }
 
   public destroy(): void {

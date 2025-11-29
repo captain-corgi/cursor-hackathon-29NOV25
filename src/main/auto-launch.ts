@@ -8,11 +8,22 @@ import * as os from 'os';
  */
 export class AutoLaunchManager {
   private appName: string;
-  private appPath: string;
+  private _appPath: string | null = null;
 
   constructor() {
     this.appName = 'AIUsageMonitor';
-    this.appPath = app.getPath('exe');
+  }
+
+  private get appPath(): string {
+    if (!this._appPath) {
+      // Lazily get the exe path when needed (must be after app is ready)
+      try {
+        this._appPath = app.getPath('exe');
+      } catch {
+        this._appPath = process.execPath;
+      }
+    }
+    return this._appPath;
   }
 
   /**

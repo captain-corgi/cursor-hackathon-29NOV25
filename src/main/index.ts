@@ -50,6 +50,9 @@ class Application {
       app.dock?.hide();
     }
 
+    // Initialize IPC handlers (must be done after app is ready)
+    ipcHandler.initialize();
+
     // Initialize tray
     this.trayManager = new TrayManager({
       onOpenDashboard: () => this.openDashboard(),

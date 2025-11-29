@@ -91,3 +91,20 @@ export const IPC_CHANNELS = {
   GET_PROVIDERS: 'get-providers',
   TOGGLE_PROVIDER: 'toggle-provider',
 } as const;
+
+// Provider stats for menu bar display
+export interface ProviderStats {
+  name: string;
+  icon?: string;
+  balance: string;
+  requestUsed: string;
+  plan: string;
+  billingPeriod: string;
+  isActive: boolean;
+}
+
+export interface MenuBarStats {
+  providers: ProviderStats[];
+  isMockData: boolean;
+  lastUpdated: Date | null;
+}

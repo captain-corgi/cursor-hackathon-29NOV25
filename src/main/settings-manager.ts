@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { app } from 'electron';
 import { AppSettings, DEFAULT_SETTINGS } from '../shared/types';
 
 /**
