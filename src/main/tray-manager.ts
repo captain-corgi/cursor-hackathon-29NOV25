@@ -17,37 +17,13 @@ export class TrayManager {
 
   constructor(callbacks: TrayManagerCallbacks) {
     this.callbacks = callbacks;
-    // Initialize with mock data
-    this.currentStats = this.getMockStats();
-    this.initialize();
-  }
-
-  /**
-   * Get mock data for demonstration
-   */
-  private getMockStats(): MenuBarStats {
-    return {
-      providers: [
-        {
-          name: 'Cursor',
-          balance: '2 left',
-          requestUsed: '18/20',
-          plan: 'Pro',
-          billingPeriod: '1 Nov 2025 - 1 Dec 2025',
-          isActive: true,
-        },
-        {
-          name: 'Claude Code',
-          balance: '1 used',
-          requestUsed: '1',
-          plan: 'Pay-As-You-Go',
-          billingPeriod: '1 Nov 2025 - 1 Dec 2025',
-          isActive: true,
-        },
-      ],
-      isMockData: true,
-      lastUpdated: new Date(),
+    // Initialize with empty data - real data will be loaded via updateStats()
+    this.currentStats = {
+      providers: [],
+      isMockData: false,
+      lastUpdated: null,
     };
+    this.initialize();
   }
 
   private initialize(): void {
@@ -144,40 +120,48 @@ export class TrayManager {
   private updateContextMenu(): void {
     const menuTemplate: MenuItemConstructorOptions[] = [];
 
-    // Add provider stats
-    for (const provider of this.currentStats.providers) {
-      // Provider name with icon
-      const providerIcon = provider.name === 'Cursor' ? '💻' : '🤖';
+    // Add provider stats or show loading message
+    if (this.currentStats.providers.length === 0) {
       menuTemplate.push({
-        label: `${providerIcon}  ${provider.name}`,
+        label: '📊  Loading usage data...',
         enabled: false,
       });
-
-      // Balance
-      menuTemplate.push({
-        label: `    Balance: ${provider.balance}`,
-        enabled: false,
-      });
-
-      // Request used
-      menuTemplate.push({
-        label: `    Request used: ${provider.requestUsed}`,
-        enabled: false,
-      });
-
-      // Plan
-      menuTemplate.push({
-        label: `    Plan: ${provider.plan}`,
-        enabled: false,
-      });
-
-      // Billing Period
-      menuTemplate.push({
-        label: `    Billing Period: ${provider.billingPeriod}`,
-        enabled: false,
-      });
-
       menuTemplate.push({ type: 'separator' });
+    } else {
+      for (const provider of this.currentStats.providers) {
+        // Provider name with icon
+        const providerIcon = provider.name === 'Cursor' ? '💻' : '🤖';
+        menuTemplate.push({
+          label: `${providerIcon}  ${provider.name}`,
+          enabled: false,
+        });
+
+        // Balance
+        menuTemplate.push({
+          label: `    Balance: ${provider.balance}`,
+          enabled: false,
+        });
+
+        // Request used
+        menuTemplate.push({
+          label: `    Request used: ${provider.requestUsed}`,
+          enabled: false,
+        });
+
+        // Plan
+        menuTemplate.push({
+          label: `    Plan: ${provider.plan}`,
+          enabled: false,
+        });
+
+        // Billing Period
+        menuTemplate.push({
+          label: `    Billing Period: ${provider.billingPeriod}`,
+          enabled: false,
+        });
+
+        menuTemplate.push({ type: 'separator' });
+      }
     }
 
     // Action items
