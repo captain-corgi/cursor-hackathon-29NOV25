@@ -76,35 +76,24 @@ const Settings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="settings">
-        <header className="header">
-          <h1>
-            <div className="header-icon">⚙</div>
-            Settings
-          </h1>
-        </header>
-        <main className="container">
-          <div className="empty-state">
-            <div className="empty-state-icon animate-pulse">⏳</div>
-            <div className="empty-state-title">Loading...</div>
-          </div>
-        </main>
+      <div className="page-content">
+        <div className="empty-state">
+          <div className="empty-state-icon animate-pulse">⏳</div>
+          <div className="empty-state-title">Loading...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="settings">
-      {/* Header */}
-      <header className="header">
-        <h1>
-          <div className="header-icon">⚙</div>
-          Settings
-        </h1>
-      </header>
+    <div className="page-content">
+      {/* Page Header */}
+      <div className="page-header">
+        <h1 className="page-title">Settings</h1>
+      </div>
 
       {/* Main Content */}
-      <main className="container">
+      <div className="page-body">
         {/* General Settings */}
         <section className="section">
           <h2 className="section-title" style={{ marginBottom: '1rem' }}>
@@ -279,7 +268,7 @@ const Settings: React.FC = () => {
             {saving ? '⏳ Saving...' : saved ? '✓ Saved!' : 'Save Settings'}
           </button>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

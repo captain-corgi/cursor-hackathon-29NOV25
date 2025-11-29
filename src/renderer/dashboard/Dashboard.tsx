@@ -88,32 +88,21 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="dashboard">
-        <header className="header">
-          <h1>
-            <div className="header-icon">$</div>
-            AI Usage Monitor
-          </h1>
-        </header>
-        <main className="container">
-          <div className="empty-state">
-            <div className="empty-state-icon animate-pulse">⏳</div>
-            <div className="empty-state-title">Loading...</div>
-            <div className="empty-state-description">Fetching usage data from providers</div>
-          </div>
-        </main>
+      <div className="page-content">
+        <div className="empty-state">
+          <div className="empty-state-icon animate-pulse">⏳</div>
+          <div className="empty-state-title">Loading...</div>
+          <div className="empty-state-description">Fetching usage data from providers</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="dashboard">
-      {/* Header */}
-      <header className="header">
-        <h1>
-          <div className="header-icon">$</div>
-          AI Usage Monitor
-        </h1>
+    <div className="page-content">
+      {/* Page Header */}
+      <div className="page-header">
+        <h1 className="page-title">Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div className="status-indicator">
             <span
@@ -136,10 +125,10 @@ const Dashboard: React.FC = () => {
             {refreshing ? '⏳' : '🔄'}
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="container">
+      <div className="page-body">
         {/* High Usage Alert */}
         {data?.isHighUsage && (
           <div
@@ -342,7 +331,7 @@ const Dashboard: React.FC = () => {
             )}
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 };
