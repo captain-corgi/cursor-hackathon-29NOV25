@@ -116,7 +116,6 @@ class Application {
       // In dev mode, load from source files directly
       // __dirname is dist/main/main/, so go up 3 levels to project root
       this.dashboardWindow.loadFile(path.join(__dirname, '../../../src/renderer/dashboard.html'));
-      this.dashboardWindow.webContents.openDevTools();
     } else {
       this.dashboardWindow.loadFile(path.join(__dirname, '../renderer/dashboard.html'));
     }
