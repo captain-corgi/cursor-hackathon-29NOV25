@@ -82,7 +82,8 @@ export class NotificationManager {
   private getIcon(): Electron.NativeImage | undefined {
     try {
       // Try to load app icon
-      const iconPath = path.join(__dirname, '../../assets/icon.png');
+      // __dirname is dist/main/main/, so go up 3 levels to project root
+      const iconPath = path.join(__dirname, '../../../assets/icon.png');
       return nativeImage.createFromPath(iconPath);
     } catch {
       return undefined;

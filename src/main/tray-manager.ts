@@ -36,21 +36,34 @@ export class TrayManager {
   }
 
   private createIcon(): Electron.NativeImage {
-    // Create a simple 16x16 icon programmatically
-    // In production, replace with actual icon files
-    const size = process.platform === 'darwin' ? 22 : 16;
-    
-    // Try to load from assets first
-    const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
-    
-    // Create a simple colored icon as fallback
-    const icon = nativeImage.createEmpty();
-    
-    // For now, create a simple template icon
-    // This creates a basic circular icon
-    const canvas = this.createSimpleIcon(size);
-    
-    return nativeImage.createFromDataURL(canvas);
+    try {
+      // Load the PNG tray icon
+      // __dirname is dist/main/main/, so go up 3 levels to project root
+      const iconPath = path.join(__dirname, '../../../assets/tray-icon.png');
+      console.log('Loading tray icon from:', iconPath);
+      const icon = nativeImage.createFromPath(iconPath);
+      console.log('Tray icon loaded, size:', icon.getSize());
+
+      // Check if icon loaded successfully (not empty)
+      if (icon.isEmpty()) {
+        console.warn('Tray icon is empty, using fallback');
+        throw new Error('Icon is empty');
+      }
+
+      // Resize for platform-specific requirements
+      const size = process.platform === 'darwin' ? 22 : 16;
+      if (icon.getSize().width !== size || icon.getSize().height !== size) {
+        return icon.resize({ width: size, height: size });
+      }
+
+      return icon;
+    } catch (error) {
+      console.warn('Failed to load tray icon, using fallback:', error);
+      // Create a simple colored icon as fallback
+      const size = process.platform === 'darwin' ? 22 : 16;
+      const canvas = this.createSimpleIcon(size);
+      return nativeImage.createFromDataURL(canvas);
+    }
   }
 
   private createSimpleIcon(size: number): string {
@@ -71,8 +84,28 @@ export class TrayManager {
 
   public setAlertState(isAlert: boolean): void {
     this.isAlertState = isAlert;
-    const icon = nativeImage.createFromDataURL(this.createSimpleIcon(process.platform === 'darwin' ? 22 : 16));
-    this.tray?.setImage(icon);
+    try {
+      // Load the appropriate PNG icon based on alert state
+      // __dirname is dist/main/main/, so go up 3 levels to project root
+      const iconName = isAlert ? 'tray-icon-alert.png' : 'tray-icon.png';
+      const iconPath = path.join(__dirname, '../../../assets', iconName);
+      console.log('Loading alert tray icon from:', iconPath);
+      const icon = nativeImage.createFromPath(iconPath);
+      console.log('Alert tray icon loaded successfully, size:', icon.getSize());
+
+      // Resize for platform-specific requirements
+      const size = process.platform === 'darwin' ? 22 : 16;
+      if (icon.getSize().width !== size || icon.getSize().height !== size) {
+        this.tray?.setImage(icon.resize({ width: size, height: size }));
+      } else {
+        this.tray?.setImage(icon);
+      }
+    } catch (error) {
+      console.warn('Failed to load alert tray icon, using fallback:', error);
+      // Fallback to simple colored icon
+      const icon = nativeImage.createFromDataURL(this.createSimpleIcon(process.platform === 'darwin' ? 22 : 16));
+      this.tray?.setImage(icon);
+    }
   }
 
   private updateContextMenu(): void {
