@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+    <title>AI Usage Monitor - Settings</title>
+    <link rel="stylesheet" href="./shared/styles.css" />
+  </head>
+  <body>
+    <div id="root">
+      <!-- Header -->
+      <header class="header">
+        <h1>
+          <div class="header-icon">⚙</div>
+          Settings
+        </h1>
+      </header>
+
+      <!-- Main Content -->
+      <main class="container">
+        <!-- General Settings -->
+        <section class="section">
+          <h2 class="section-title" style="margin-bottom: 1rem;">General</h2>
+
+          <!-- Refresh Interval -->
+          <div class="form-group">
+            <label class="form-label">Refresh Interval</label>
+            <select class="form-input" id="refresh-interval">
+              <option value="60">Every minute</option>
+              <option value="120">Every 2 minutes</option>
+              <option value="300">Every 5 minutes</option>
+              <option value="600">Every 10 minutes</option>
+              <option value="1800">Every 30 minutes</option>
+              <option value="3600">Every hour</option>
+            </select>
+            <p class="form-description">How often to refresh usage data from files</p>
+          </div>
+
+          <!-- Display Format -->
+          <div class="form-group">
+            <label class="form-label">Display Format</label>
+            <div class="tabs" style="margin-bottom: 0;">
+              <button class="tab active" id="format-cost" onclick="setDisplayFormat('cost')">💰 Cost (USD)</button>
+              <button class="tab" id="format-tokens" onclick="setDisplayFormat('tokens')">🔢 Tokens</button>
+            </div>
+            <p class="form-description">What to show in the menu bar tooltip</p>
+          </div>
+
+          <!-- Launch at Login -->
+          <div class="toggle" onclick="toggleLaunchAtLogin()">
+            <div class="toggle-info">
+              <div class="toggle-label">Launch at Login</div>
+              <div class="toggle-description">Start automatically when you log in</div>
+            </div>
+            <div class="toggle-switch" id="launch-toggle"></div>
+          </div>
+        </section>
+
+        <!-- Alerts -->
+        <section class="section">
+          <h2 class="section-title" style="margin-bottom: 1rem;">Alerts</h2>
+
+          <!-- Enable Alerts -->
+          <div class="toggle" onclick="toggleAlerts()" style="margin-bottom: 1rem;">
+            <div class="toggle-info">
+              <div class="toggle-label">Usage Alerts</div>
+              <div class="toggle-description">Get notified when daily cost exceeds threshold</div>
+            </div>
+            <div class="toggle-switch" id="alert-toggle"></div>
+          </div>
+
+          <!-- Threshold -->
+          <div class="form-group" id="threshold-group" style="display: none;">
+            <label class="form-label">Daily Cost Threshold</label>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: var(--accent-success); font-weight: 600;">$</span>
+              <input type="number" class="form-input" id="alert-threshold" value="10" min="1" max="1000" step="1" style="width: 120px;" />
+            </div>
+            <p class="form-description">Alert when daily usage exceeds this amount</p>
+          </div>
+        </section>
+
+        <!-- Providers -->
+        <section class="section">
+          <h2 class="section-title" style="margin-bottom: 1rem;">Providers</h2>
+          <div id="providers-list">
+            <!-- Will be populated by JS -->
+          </div>
+        </section>
+
+        <!-- Save Button -->
+        <div style="padding-top: 1rem; padding-bottom: 1rem;">
+          <button class="btn btn-primary" onclick="saveSettings()" style="width: 100%;" id="save-btn">Save Settings</button>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      let settings = {
+        refreshIntervalSeconds: 60,
+        displayFormat: 'cost',
+        usageAlertEnabled: false,
+        usageAlertThreshold: 10,
+        launchAtLogin: false,
+        enabledProviders: ['claude-code', 'cursor'],
+        customDataDirectories: []
+      };
+
+      let providers = [];
+
+      function setDisplayFormat(format) {
+        settings.displayFormat = format;
+        document.getElementById('format-cost').classList.toggle('active', format === 'cost');
+        document.getElementById('format-tokens').classList.toggle('active', format === 'tokens');
+      }
+
+      function toggleLaunchAtLogin() {
+        settings.launchAtLogin = !settings.launchAtLogin;
+        document.getElementById('launch-toggle').classList.toggle('active', settings.launchAtLogin);
+      }
+
+      function toggleAlerts() {
+        settings.usageAlertEnabled = !settings.usageAlertEnabled;
+        document.getElementById('alert-toggle').classList.toggle('active', settings.usageAlertEnabled);
+        document.getElementById('threshold-group').style.display = settings.usageAlertEnabled ? 'block' : 'none';
+      }
+
+      function toggleProvider(providerId) {
+        if (settings.enabledProviders.includes(providerId)) {
+          settings.enabledProviders = settings.enabledProviders.filter(id => id !== providerId);
+        } else {
+          settings.enabledProviders.push(providerId);
+        }
+        updateProvidersUI();
+      }
+
+      function updateProvidersUI() {
+        const container = document.getElementById('providers-list');
+        container.innerHTML = providers.map(p => `
+          <div class="toggle" onclick="toggleProvider('${p.id}')" style="margin-bottom: 0.75rem; opacity: ${p.supported ? 1 : 0.6};">
+            <div class="toggle-info">
+              <div class="toggle-label">
+                <span class="provider-badge ${p.id === 'claude-code' ? 'claude' : 'cursor'}" style="margin-right: 0.5rem;">${p.name}</span>
+                ${!p.supported ? '<span style="font-size: 0.7rem; color: var(--text-muted);">(not available)</span>' : ''}
+              </div>
+              <div class="toggle-description">${p.id === 'claude-code' ? 'Read usage from ~/.config/claude/projects/' : 'Mock data for development'}</div>
+            </div>
+            <div class="toggle-switch ${settings.enabledProviders.includes(p.id) ? 'active' : ''}"></div>
+          </div>
+        `).join('');
+      }
+
+      function updateUI() {
+        document.getElementById('refresh-interval').value = settings.refreshIntervalSeconds;
+        document.getElementById('format-cost').classList.toggle('active', settings.displayFormat === 'cost');
+        document.getElementById('format-tokens').classList.toggle('active', settings.displayFormat === 'tokens');
+        document.getElementById('launch-toggle').classList.toggle('active', settings.launchAtLogin);
+        document.getElementById('alert-toggle').classList.toggle('active', settings.usageAlertEnabled);
+        document.getElementById('threshold-group').style.display = settings.usageAlertEnabled ? 'block' : 'none';
+        document.getElementById('alert-threshold').value = settings.usageAlertThreshold;
+        updateProvidersUI();
+      }
+
+      async function loadSettings() {
+        try {
+          if (window.electronAPI) {
+            settings = await window.electronAPI.getSettings();
+            providers = await window.electronAPI.getProviders();
+            updateUI();
+          }
+        } catch (e) {
+          console.error('Error loading settings:', e);
+        }
+      }
+
+      async function saveSettings() {
+        const btn = document.getElementById('save-btn');
+        btn.textContent = '⏳ Saving...';
+        btn.disabled = true;
+
+        try {
+          settings.refreshIntervalSeconds = parseInt(document.getElementById('refresh-interval').value);
+          settings.usageAlertThreshold = parseInt(document.getElementById('alert-threshold').value);
+
+          if (window.electronAPI) {
+            await window.electronAPI.saveSettings(settings);
+          }
+
+          btn.textContent = '✓ Saved!';
+          setTimeout(() => {
+            btn.textContent = 'Save Settings';
+            btn.disabled = false;
+          }, 2000);
+        } catch (e) {
+          console.error('Error saving:', e);
+          btn.textContent = 'Save Settings';
+          btn.disabled = false;
+        }
+      }
+
+      // Initial load
+      document.addEventListener('DOMContentLoaded', loadSettings);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#gradient)"/>
+  
+  <!-- Inner Glow -->
+  <circle cx="256" cy="256" r="200" fill="url(#innerGradient)" opacity="0.3"/>
+  
+  <!-- Dollar Sign -->
+  <text x="256" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="280" font-weight="bold" fill="white">$</text>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <radialGradient id="innerGradient" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="white"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+  </defs>
+</svg>
