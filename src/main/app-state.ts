@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { NormalizedEntry, AggregatedUsage, AppSettings, AppStatus } from '../shared/types';
+import { NormalizedEntry, AggregatedUsage, AppSettings, AppStatus, MenuBarStats, ProviderStats } from '../shared/types';
 import { dataLoader } from './data-loader';
 import { costCalculator } from './cost-calculator';
 import { settingsManager } from './settings-manager';
@@ -257,6 +257,80 @@ export class AppStateManager extends EventEmitter {
     }
 
     return `AI Usage Monitor\nToday: $${daily.totalCostUSD.toFixed(2)}\n${daily.totalTokens.toLocaleString()} tokens`;
+  }
+
+  /**
+   * Get menu bar stats from current state
+   * Converts aggregated usage data to MenuBarStats format for tray display
+   */
+  getMenuBarStats(): MenuBarStats {
+    const monthly = this.state.monthlyUsage;
+
+    if (!monthly) {
+      return {
+        providers: [],
+        isMockData: false,
+        lastUpdated: this.state.lastUpdated,
+      };
+    }
+
+    // Get billing period (current month)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const formatDate = (d: Date) =>
+      `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+    const billingPeriod = `${formatDate(startOfMonth)} - ${formatDate(endOfMonth)}`;
+
+    // Convert provider breakdown to ProviderStats format
+    const providers: ProviderStats[] = [];
+
+    // Process each provider from the breakdown
+    Object.values(monthly.providerBreakdown).forEach((providerUsage) => {
+      const { providerName, entryCount, costUSD, totalTokens, providerId } = providerUsage;
+
+      // Determine plan type based on provider
+      let plan = 'Unknown';
+
+      if (providerId === 'cursor') {
+        plan = 'Pro';
+      } else if (providerId === 'claude-code') {
+        plan = 'Pay-As-You-Go';
+      } else {
+        plan = 'Standard';
+      }
+
+      // Format balance to show cost and tokens (matching dashboard display)
+      const balance = `$${costUSD.toFixed(2)} (${totalTokens.toLocaleString()} tokens)`;
+      const requestUsed = `${entryCount} requests`;
+
+      providers.push({
+        name: providerName,
+        balance,
+        requestUsed,
+        plan,
+        billingPeriod,
+        isActive: true,
+      });
+    });
+
+    // If no providers in breakdown, show a summary entry
+    if (providers.length === 0 && monthly.entryCount > 0) {
+      providers.push({
+        name: 'All Providers',
+        balance: `$${monthly.totalCostUSD.toFixed(2)} spent`,
+        requestUsed: `${monthly.entryCount} requests`,
+        plan: 'Mixed',
+        billingPeriod,
+        isActive: true,
+      });
+    }
+
+    return {
+      providers,
+      isMockData: false,
+      lastUpdated: this.state.lastUpdated,
+    };
   }
 
   /**

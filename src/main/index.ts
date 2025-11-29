@@ -64,9 +64,10 @@ class Application {
     // Initialize app state and start data loading
     await appStateManager.initialize();
 
-    // Update tray tooltip when state changes
+    // Update tray tooltip and stats when state changes
     appStateManager.on('state-changed', () => {
       this.trayManager?.updateTooltip(appStateManager.getTooltipText());
+      this.trayManager?.updateStats(appStateManager.getMenuBarStats());
     });
 
     // Update tray icon on high usage
@@ -81,8 +82,9 @@ class Application {
       }
     });
 
-    // Initial tooltip update
+    // Initial tooltip and stats update
     this.trayManager.updateTooltip(appStateManager.getTooltipText());
+    this.trayManager.updateStats(appStateManager.getMenuBarStats());
 
     console.log('AI Usage Monitor started');
   }
