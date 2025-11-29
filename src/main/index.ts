@@ -16,8 +16,7 @@ try {
 
 class Application {
   private trayManager: TrayManager | null = null;
-  private dashboardWindow: BrowserWindow | null = null;
-  private settingsWindow: BrowserWindow | null = null;
+  private mainWindow: BrowserWindow | null = null;
 
   constructor() {
     this.setupAppEvents();
@@ -35,7 +34,7 @@ class Application {
     app.on('activate', () => {
       // On macOS, re-create window if dock icon clicked
       if (BrowserWindow.getAllWindows().length === 0) {
-        this.openDashboard();
+        this.openApp();
       }
     });
 
@@ -55,8 +54,7 @@ class Application {
 
     // Initialize tray
     this.trayManager = new TrayManager({
-      onOpenDashboard: () => this.openDashboard(),
-      onOpenSettings: () => this.openSettings(),
+      onOpenApp: () => this.openApp(),
       onRefresh: () => this.refreshData(),
       onQuit: () => this.quit(),
     });
@@ -89,17 +87,19 @@ class Application {
     console.log('AI Usage Monitor started');
   }
 
-  public openDashboard(): void {
-    if (this.dashboardWindow) {
-      this.dashboardWindow.show();
-      this.dashboardWindow.focus();
+  public openApp(): void {
+    if (this.mainWindow) {
+      this.mainWindow.show();
+      this.mainWindow.focus();
       return;
     }
 
-    this.dashboardWindow = new BrowserWindow({
-      width: 1000,
-      height: 750,
-      title: 'AI Usage Monitor - Dashboard',
+    this.mainWindow = new BrowserWindow({
+      width: 1280,
+      height: 800,
+      minWidth: 1000,
+      minHeight: 650,
+      title: 'AI Usage Monitor',
       backgroundColor: '#0f0f23',
       webPreferences: {
         nodeIntegration: false,
@@ -110,74 +110,32 @@ class Application {
     });
 
     // Register for IPC broadcasts
-    ipcHandler.registerWindow(this.dashboardWindow);
+    ipcHandler.registerWindow(this.mainWindow);
 
-    // Load the dashboard page
+    // Load the app
     const isDev = !app.isPackaged;
     if (isDev) {
       // In dev mode, load from source files directly
       // __dirname is dist/main/main/, so go up 3 levels to project root
-      this.dashboardWindow.loadFile(path.join(__dirname, '../../../src/renderer/dashboard.html'));
+      this.mainWindow.loadFile(path.join(__dirname, '../../../src/renderer/index.html'));
     } else {
-      this.dashboardWindow.loadFile(path.join(__dirname, '../renderer/dashboard.html'));
+      this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
     }
 
-    this.dashboardWindow.once('ready-to-show', () => {
-      this.dashboardWindow?.show();
+    this.mainWindow.once('ready-to-show', () => {
+      this.mainWindow?.show();
     });
 
-    this.dashboardWindow.on('closed', () => {
-      this.dashboardWindow = null;
+    this.mainWindow.on('closed', () => {
+      this.mainWindow = null;
     });
 
     // Minimize to tray instead of closing
-    this.dashboardWindow.on('close', (event) => {
+    this.mainWindow.on('close', (event) => {
       if (!(app as any).isQuitting) {
         event.preventDefault();
-        this.dashboardWindow?.hide();
+        this.mainWindow?.hide();
       }
-    });
-  }
-
-  public openSettings(): void {
-    if (this.settingsWindow) {
-      this.settingsWindow.show();
-      this.settingsWindow.focus();
-      return;
-    }
-
-    this.settingsWindow = new BrowserWindow({
-      width: 500,
-      height: 650,
-      title: 'AI Usage Monitor - Settings',
-      backgroundColor: '#0f0f23',
-      resizable: false,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        preload: path.join(__dirname, './preload.js'),
-      },
-      show: false,
-    });
-
-    // Register for IPC broadcasts
-    ipcHandler.registerWindow(this.settingsWindow);
-
-    // Load the settings page
-    const isDev = !app.isPackaged;
-    if (isDev) {
-      // __dirname is dist/main/main/, so go up 3 levels to project root
-      this.settingsWindow.loadFile(path.join(__dirname, '../../../src/renderer/settings.html'));
-    } else {
-      this.settingsWindow.loadFile(path.join(__dirname, '../renderer/settings.html'));
-    }
-
-    this.settingsWindow.once('ready-to-show', () => {
-      this.settingsWindow?.show();
-    });
-
-    this.settingsWindow.on('closed', () => {
-      this.settingsWindow = null;
     });
   }
 

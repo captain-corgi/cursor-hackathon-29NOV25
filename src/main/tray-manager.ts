@@ -3,8 +3,7 @@ import path from 'path';
 import { ProviderStats, MenuBarStats } from '../shared/types';
 
 export interface TrayManagerCallbacks {
-  onOpenDashboard: () => void;
-  onOpenSettings: () => void;
+  onOpenApp: () => void;
   onRefresh: () => void;
   onQuit: () => void;
 }
@@ -38,9 +37,9 @@ export class TrayManager {
     this.updateContextMenu();
 
     // Click opens menu (default behavior on macOS)
-    // Double-click opens dashboard
+    // Double-click opens app
     this.tray.on('double-click', () => {
-      this.callbacks.onOpenDashboard();
+      this.callbacks.onOpenApp();
     });
   }
 
@@ -166,20 +165,14 @@ export class TrayManager {
 
     // Action items
     menuTemplate.push({
-      label: 'Open Dashboard',
-      click: () => this.callbacks.onOpenDashboard(),
+      label: 'Open AI Usage Monitor',
+      click: () => this.callbacks.onOpenApp(),
     });
 
     menuTemplate.push({
       label: 'Refresh',
       accelerator: 'CmdOrCtrl+R',
       click: () => this.callbacks.onRefresh(),
-    });
-
-    menuTemplate.push({
-      label: 'Settings...',
-      accelerator: 'CmdOrCtrl+,',
-      click: () => this.callbacks.onOpenSettings(),
     });
 
     menuTemplate.push({ type: 'separator' });
