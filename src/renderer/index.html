@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+    <title>AI Usage Monitor</title>
+    <link rel="stylesheet" href="./shared/styles.css" />
+  </head>
+  <body>
+    <div id="root">
+      <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-logo">
+              <div class="sidebar-logo-icon">$</div>
+              <span class="sidebar-logo-text">AI Monitor</span>
+            </div>
+          </div>
+
+          <nav class="sidebar-nav">
+            <button class="sidebar-nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+              <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Dashboard</span>
+            </button>
+
+            <button class="sidebar-nav-item" id="nav-settings" onclick="showPage('settings')">
+              <svg class="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              <span>Settings</span>
+            </button>
+          </nav>
+
+          <div class="sidebar-footer">
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle">
+              <svg class="theme-toggle-icon" id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+              <svg class="theme-toggle-icon" id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+              <span id="theme-label">Light Mode</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+          <!-- Dashboard Page -->
+          <div id="page-dashboard" class="page-content">
+            <div class="page-header">
+              <h1 class="page-title">Dashboard</h1>
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="status-indicator">
+                  <span class="status-dot" id="status-dot"></span>
+                  <span id="last-updated">Loading...</span>
+                </div>
+                <button class="btn btn-secondary btn-icon" onclick="refreshData()" title="Refresh">🔄</button>
+              </div>
+            </div>
+
+            <div class="page-body">
+              <!-- Loading State -->
+              <div id="loading-state" class="empty-state">
+                <div class="empty-state-icon animate-pulse">⏳</div>
+                <div class="empty-state-title">Loading...</div>
+                <div class="empty-state-description">Fetching usage data from providers</div>
+              </div>
+
+              <!-- Dashboard Content -->
+              <div id="dashboard-content" style="display: none;">
+                <!-- Period Tabs -->
+                <div class="tabs">
+                  <button class="tab active" onclick="setPeriod('daily')" id="tab-daily">Today</button>
+                  <button class="tab" onclick="setPeriod('weekly')" id="tab-weekly">This Week</button>
+                  <button class="tab" onclick="setPeriod('monthly')" id="tab-monthly">This Month</button>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid animate-fade-in">
+                  <div class="stat-card">
+                    <div class="stat-label">Total Cost</div>
+                    <div class="stat-value cost" id="total-cost">$0.00</div>
+                    <div class="stat-change" id="entry-count">0 requests</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-label">Total Tokens</div>
+                    <div class="stat-value tokens" id="total-tokens">0</div>
+                    <div class="stat-change" id="input-percent">0% input</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-label">Input Tokens</div>
+                    <div class="stat-value" id="input-tokens">0</div>
+                    <div class="stat-change" id="input-cost">~$0.00 estimated</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-label">Output Tokens</div>
+                    <div class="stat-value" id="output-tokens">0</div>
+                    <div class="stat-change" id="output-cost">~$0.00 estimated</div>
+                  </div>
+                </div>
+
+                <!-- Provider Breakdown -->
+                <section class="section">
+                  <div class="section-header">
+                    <h2 class="section-title">Provider Breakdown</h2>
+                  </div>
+                  <div class="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Provider</th>
+                          <th>Requests</th>
+                          <th>Tokens</th>
+                          <th>Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody id="provider-table">
+                        <tr>
+                          <td colspan="4" style="text-align: center; color: var(--text-muted);">No data available</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <!-- Model Breakdown -->
+                <section class="section">
+                  <div class="section-header">
+                    <h2 class="section-title">Model Breakdown</h2>
+                  </div>
+                  <div class="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Requests</th>
+                          <th>Tokens</th>
+                          <th>Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody id="model-table">
+                        <tr>
+                          <td colspan="4" style="text-align: center; color: var(--text-muted);">No data available</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Page -->
+          <div id="page-settings" class="page-content" style="display: none;">
+            <div class="page-header">
+              <h1 class="page-title">Settings</h1>
+            </div>
+
+            <div class="page-body">
+              <!-- General Settings -->
+              <section class="section">
+                <h2 class="section-title" style="margin-bottom: 1rem;">General</h2>
+
+                <!-- Refresh Interval -->
+                <div class="form-group">
+                  <label class="form-label">Refresh Interval</label>
+                  <select class="form-input" id="refresh-interval">
+                    <option value="60">Every minute</option>
+                    <option value="120">Every 2 minutes</option>
+                    <option value="300">Every 5 minutes</option>
+                    <option value="600">Every 10 minutes</option>
+                    <option value="1800">Every 30 minutes</option>
+                    <option value="3600">Every hour</option>
+                  </select>
+                  <p class="form-description">How often to refresh usage data from files</p>
+                </div>
+
+                <!-- Display Format -->
+                <div class="form-group">
+                  <label class="form-label">Display Format</label>
+                  <div class="tabs" style="margin-bottom: 0; max-width: 300px;">
+                    <button class="tab active" id="format-cost" onclick="setDisplayFormat('cost')">💰 Cost (USD)</button>
+                    <button class="tab" id="format-tokens" onclick="setDisplayFormat('tokens')">🔢 Tokens</button>
+                  </div>
+                  <p class="form-description">What to show in the menu bar tooltip</p>
+                </div>
+
+                <!-- Launch at Login -->
+                <div class="toggle" onclick="toggleLaunchAtLogin()">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Launch at Login</div>
+                    <div class="toggle-description">Start automatically when you log in</div>
+                  </div>
+                  <div class="toggle-switch" id="launch-toggle"></div>
+                </div>
+              </section>
+
+              <!-- Alerts -->
+              <section class="section">
+                <h2 class="section-title" style="margin-bottom: 1rem;">Alerts</h2>
+
+                <!-- Enable Alerts -->
+                <div class="toggle" onclick="toggleAlerts()" style="margin-bottom: 1rem;">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Usage Alerts</div>
+                    <div class="toggle-description">Get notified when daily cost exceeds threshold</div>
+                  </div>
+                  <div class="toggle-switch" id="alert-toggle"></div>
+                </div>
+
+                <!-- Threshold -->
+                <div class="form-group" id="threshold-group" style="display: none;">
+                  <label class="form-label">Daily Cost Threshold</label>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="color: var(--accent-success); font-weight: 600;">$</span>
+                    <input type="number" class="form-input" id="alert-threshold" value="10" min="1" max="1000" step="1" style="width: 120px;" />
+                  </div>
+                  <p class="form-description">Alert when daily usage exceeds this amount</p>
+                </div>
+              </section>
+
+              <!-- Providers -->
+              <section class="section">
+                <h2 class="section-title" style="margin-bottom: 1rem;">Providers</h2>
+                <div id="providers-list">
+                  <!-- Will be populated by JS -->
+                </div>
+              </section>
+
+              <!-- Save Button -->
+              <div style="padding-top: 1rem; padding-bottom: 1rem;">
+                <button class="btn btn-primary" onclick="saveSettings()" style="width: 100%; max-width: 500px;" id="save-btn">Save Settings</button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      // ==================== Theme Management ====================
+      let currentTheme = localStorage.getItem('theme') || 'dark';
+      
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
+        const themeLabel = document.getElementById('theme-label');
+        
+        if (theme === 'dark') {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+          themeLabel.textContent = 'Light Mode';
+        } else {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+          themeLabel.textContent = 'Dark Mode';
+        }
+        localStorage.setItem('theme', theme);
+      }
+      
+      function toggleTheme() {
+        currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(currentTheme);
+      }
+
+      // ==================== Page Navigation ====================
+      let currentPage = 'dashboard';
+
+      function showPage(page) {
+        currentPage = page;
+        
+        // Update nav items
+        document.getElementById('nav-dashboard').classList.toggle('active', page === 'dashboard');
+        document.getElementById('nav-settings').classList.toggle('active', page === 'settings');
+        
+        // Show/hide pages
+        document.getElementById('page-dashboard').style.display = page === 'dashboard' ? 'flex' : 'none';
+        document.getElementById('page-settings').style.display = page === 'settings' ? 'flex' : 'none';
+        
+        // Load settings data when showing settings page
+        if (page === 'settings') {
+          loadSettings();
+        }
+      }
+
+      // ==================== Dashboard Logic ====================
+      let currentPeriod = 'daily';
+      let usageData = null;
+
+      const formatCost = (cost) => `$${(cost || 0).toFixed(2)}`;
+      const formatTokens = (tokens) => (tokens || 0).toLocaleString();
+
+      function formatTime(isoString) {
+        if (!isoString) return 'Never';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        return `${Math.floor(diff / 3600)}h ago`;
+      }
+
+      function setPeriod(period) {
+        currentPeriod = period;
+        document.querySelectorAll('#page-dashboard .tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`tab-${period}`).classList.add('active');
+        updateDashboard();
+      }
+
+      function updateDashboard() {
+        if (!usageData) return;
+
+        const usage = usageData[currentPeriod];
+        if (!usage) {
+          document.getElementById('dashboard-content').style.display = 'none';
+          document.getElementById('loading-state').innerHTML = `
+            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-title">No usage data</div>
+            <div class="empty-state-description">No AI usage recorded for this period.</div>
+          `;
+          document.getElementById('loading-state').style.display = 'block';
+          return;
+        }
+
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('dashboard-content').style.display = 'block';
+
+        // Update stats
+        document.getElementById('total-cost').textContent = formatCost(usage.totalCostUSD);
+        document.getElementById('total-tokens').textContent = formatTokens(usage.totalTokens);
+        document.getElementById('entry-count').textContent = `${usage.entryCount} requests`;
+        document.getElementById('input-tokens').textContent = formatTokens(usage.inputTokens);
+        document.getElementById('output-tokens').textContent = formatTokens(usage.outputTokens);
+        
+        const inputPercent = usage.totalTokens > 0 ? Math.round((usage.inputTokens / usage.totalTokens) * 100) : 0;
+        document.getElementById('input-percent').textContent = `${inputPercent}% input`;
+        document.getElementById('input-cost').textContent = `~${formatCost(usage.inputTokens * 0.000003)} estimated`;
+        document.getElementById('output-cost').textContent = `~${formatCost(usage.outputTokens * 0.000015)} estimated`;
+
+        // Update last updated
+        document.getElementById('last-updated').textContent = `Updated ${formatTime(usageData.lastUpdated)}`;
+
+        // Update provider table
+        const providerTable = document.getElementById('provider-table');
+        if (usage.providerBreakdown && Object.keys(usage.providerBreakdown).length > 0) {
+          providerTable.innerHTML = Object.values(usage.providerBreakdown).map(p => `
+            <tr>
+              <td><span class="provider-badge ${p.providerId === 'claude-code' ? 'claude' : 'cursor'}">${p.providerName}</span></td>
+              <td>${p.entryCount}</td>
+              <td>${formatTokens(p.totalTokens)}</td>
+              <td style="color: var(--accent-success)">${formatCost(p.costUSD)}</td>
+            </tr>
+          `).join('');
+        } else {
+          providerTable.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No provider data</td></tr>';
+        }
+
+        // Update model table
+        const modelTable = document.getElementById('model-table');
+        if (usage.modelBreakdown && Object.keys(usage.modelBreakdown).length > 0) {
+          modelTable.innerHTML = Object.values(usage.modelBreakdown)
+            .sort((a, b) => b.costUSD - a.costUSD)
+            .map(m => `
+              <tr>
+                <td style="font-family: var(--font-mono); font-size: 0.8rem;">${m.model}</td>
+                <td>${m.entryCount}</td>
+                <td>${formatTokens(m.totalTokens)}</td>
+                <td style="color: var(--accent-success)">${formatCost(m.costUSD)}</td>
+              </tr>
+            `).join('');
+        } else {
+          modelTable.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No model data</td></tr>';
+        }
+      }
+
+      async function loadData() {
+        try {
+          if (window.electronAPI) {
+            usageData = await window.electronAPI.getUsageData();
+            updateDashboard();
+          }
+        } catch (e) {
+          console.error('Error loading data:', e);
+        }
+      }
+
+      async function refreshData() {
+        try {
+          if (window.electronAPI) {
+            await window.electronAPI.refreshData();
+            await loadData();
+          }
+        } catch (e) {
+          console.error('Error refreshing:', e);
+        }
+      }
+
+      // ==================== Settings Logic ====================
+      let settings = {
+        refreshIntervalSeconds: 60,
+        displayFormat: 'cost',
+        usageAlertEnabled: false,
+        usageAlertThreshold: 10,
+        launchAtLogin: false,
+        enabledProviders: ['claude-code', 'cursor'],
+        customDataDirectories: []
+      };
+
+      let providers = [];
+
+      function setDisplayFormat(format) {
+        settings.displayFormat = format;
+        document.getElementById('format-cost').classList.toggle('active', format === 'cost');
+        document.getElementById('format-tokens').classList.toggle('active', format === 'tokens');
+      }
+
+      function toggleLaunchAtLogin() {
+        settings.launchAtLogin = !settings.launchAtLogin;
+        document.getElementById('launch-toggle').classList.toggle('active', settings.launchAtLogin);
+      }
+
+      function toggleAlerts() {
+        settings.usageAlertEnabled = !settings.usageAlertEnabled;
+        document.getElementById('alert-toggle').classList.toggle('active', settings.usageAlertEnabled);
+        document.getElementById('threshold-group').style.display = settings.usageAlertEnabled ? 'block' : 'none';
+      }
+
+      function toggleProvider(providerId) {
+        if (settings.enabledProviders.includes(providerId)) {
+          settings.enabledProviders = settings.enabledProviders.filter(id => id !== providerId);
+        } else {
+          settings.enabledProviders.push(providerId);
+        }
+        updateProvidersUI();
+      }
+
+      function updateProvidersUI() {
+        const container = document.getElementById('providers-list');
+        container.innerHTML = providers.map(p => `
+          <div class="toggle" onclick="toggleProvider('${p.id}')" style="margin-bottom: 0.75rem; opacity: ${p.supported ? 1 : 0.6};">
+            <div class="toggle-info">
+              <div class="toggle-label">
+                <span class="provider-badge ${p.id === 'claude-code' ? 'claude' : 'cursor'}" style="margin-right: 0.5rem;">${p.name}</span>
+                ${!p.supported ? '<span style="font-size: 0.7rem; color: var(--text-muted);">(not available)</span>' : ''}
+              </div>
+              <div class="toggle-description">${p.id === 'claude-code' ? 'Read usage from ~/.config/claude/projects/' : 'Mock data for development'}</div>
+            </div>
+            <div class="toggle-switch ${settings.enabledProviders.includes(p.id) ? 'active' : ''}"></div>
+          </div>
+        `).join('');
+      }
+
+      function updateSettingsUI() {
+        document.getElementById('refresh-interval').value = settings.refreshIntervalSeconds;
+        document.getElementById('format-cost').classList.toggle('active', settings.displayFormat === 'cost');
+        document.getElementById('format-tokens').classList.toggle('active', settings.displayFormat === 'tokens');
+        document.getElementById('launch-toggle').classList.toggle('active', settings.launchAtLogin);
+        document.getElementById('alert-toggle').classList.toggle('active', settings.usageAlertEnabled);
+        document.getElementById('threshold-group').style.display = settings.usageAlertEnabled ? 'block' : 'none';
+        document.getElementById('alert-threshold').value = settings.usageAlertThreshold;
+        updateProvidersUI();
+      }
+
+      async function loadSettings() {
+        try {
+          if (window.electronAPI) {
+            settings = await window.electronAPI.getSettings();
+            providers = await window.electronAPI.getProviders();
+            updateSettingsUI();
+          }
+        } catch (e) {
+          console.error('Error loading settings:', e);
+        }
+      }
+
+      async function saveSettings() {
+        const btn = document.getElementById('save-btn');
+        btn.textContent = '⏳ Saving...';
+        btn.disabled = true;
+
+        try {
+          settings.refreshIntervalSeconds = parseInt(document.getElementById('refresh-interval').value);
+          settings.usageAlertThreshold = parseInt(document.getElementById('alert-threshold').value);
+
+          if (window.electronAPI) {
+            await window.electronAPI.saveSettings(settings);
+          }
+
+          btn.textContent = '✓ Saved!';
+          setTimeout(() => {
+            btn.textContent = 'Save Settings';
+            btn.disabled = false;
+          }, 2000);
+        } catch (e) {
+          console.error('Error saving:', e);
+          btn.textContent = 'Save Settings';
+          btn.disabled = false;
+        }
+      }
+
+      // ==================== Initialization ====================
+      document.addEventListener('DOMContentLoaded', () => {
+        applyTheme(currentTheme);
+        loadData();
+      });
+
+      // Listen for updates from main process
+      if (window.electronAPI) {
+        window.electronAPI.onUsageUpdated((data) => {
+          usageData = data;
+          updateDashboard();
+        });
+      }
+    </script>
+  </body>
+</html>
