@@ -1,6 +1,17 @@
-import { Tray, Menu, nativeImage, MenuItemConstructorOptions } from 'electron';
+import { Tray, Menu, nativeImage, MenuItemConstructorOptions, app } from 'electron';
 import path from 'path';
 import { ProviderStats, MenuBarStats } from '../shared/types';
+
+// Helper to get assets path for both dev and production
+function getAssetPath(assetName: string): string {
+  if (app.isPackaged) {
+    // In production, assets are in Resources/assets via extraResources
+    return path.join(process.resourcesPath, 'assets', assetName);
+  } else {
+    // In development, __dirname is dist/main/main/, go up 3 levels to project root
+    return path.join(__dirname, '../../../assets', assetName);
+  }
+}
 
 export interface TrayManagerCallbacks {
   onOpenApp: () => void;
@@ -46,8 +57,7 @@ export class TrayManager {
   private createIcon(): Electron.NativeImage {
     try {
       // Load the PNG tray icon
-      // __dirname is dist/main/main/, so go up 3 levels to project root
-      const iconPath = path.join(__dirname, '../../../assets/tray-icon.png');
+      const iconPath = getAssetPath('tray-icon.png');
       console.log('Loading tray icon from:', iconPath);
       const icon = nativeImage.createFromPath(iconPath);
       console.log('Tray icon loaded, size:', icon.getSize());
@@ -94,9 +104,8 @@ export class TrayManager {
     this.isAlertState = isAlert;
     try {
       // Load the appropriate PNG icon based on alert state
-      // __dirname is dist/main/main/, so go up 3 levels to project root
       const iconName = isAlert ? 'tray-icon-alert.png' : 'tray-icon.png';
-      const iconPath = path.join(__dirname, '../../../assets', iconName);
+      const iconPath = getAssetPath(iconName);
       console.log('Loading alert tray icon from:', iconPath);
       const icon = nativeImage.createFromPath(iconPath);
       console.log('Alert tray icon loaded successfully, size:', icon.getSize());

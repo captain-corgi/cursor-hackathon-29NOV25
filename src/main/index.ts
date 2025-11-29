@@ -119,7 +119,8 @@ class Application {
       // __dirname is dist/main/main/, so go up 3 levels to project root
       this.mainWindow.loadFile(path.join(__dirname, '../../../src/renderer/index.html'));
     } else {
-      this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+      // In production, __dirname is dist/main/main/, renderer is at dist/renderer/
+      this.mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'));
     }
 
     this.mainWindow.once('ready-to-show', () => {
