@@ -55,9 +55,10 @@ export class ClaudeCodeProvider implements UsageProvider {
       for (const line of lines) {
         try {
           const raw: RawClaudeEntry = JSON.parse(line);
-          // Only include entries that have usage data
-          if (raw.usage && raw.timestamp) {
-            entries.push(this.normalizeEntry(raw, filePath));
+          // Only include entries that have usage data (normalizeEntry returns null for non-assistant entries)
+          const normalized = this.normalizeEntry(raw, filePath);
+          if (normalized) {
+            entries.push(normalized);
           }
         } catch (e) {
           // Skip malformed lines, log warning
@@ -98,12 +99,19 @@ export class ClaudeCodeProvider implements UsageProvider {
 
   /**
    * Normalize raw Claude entry to common format
+   * Returns null if entry has no usage data (e.g., user messages)
    */
-  private normalizeEntry(raw: RawClaudeEntry, filePath: string): NormalizedEntry {
-    const inputTokens = raw.usage.input_tokens || 0;
-    const outputTokens = raw.usage.output_tokens || 0;
-    const cacheCreationTokens = raw.usage.cache_creation_input_tokens || 0;
-    const cacheReadTokens = raw.usage.cache_read_input_tokens || 0;
+  private normalizeEntry(raw: RawClaudeEntry, filePath: string): NormalizedEntry | null {
+    // Only assistant messages have usage data
+    if (!raw.message?.usage) {
+      return null;
+    }
+
+    const usage = raw.message.usage;
+    const inputTokens = usage.input_tokens || 0;
+    const outputTokens = usage.output_tokens || 0;
+    const cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+    const cacheReadTokens = usage.cache_read_input_tokens || 0;
 
     // Extract project and session from file path
     const sessionId = raw.sessionId || path.basename(filePath, '.jsonl');
@@ -111,13 +119,13 @@ export class ClaudeCodeProvider implements UsageProvider {
 
     return {
       timestamp: new Date(raw.timestamp),
-      model: raw.model || 'unknown',
+      model: raw.message.model || 'unknown',
       inputTokens,
       outputTokens,
       cacheCreationTokens,
       cacheReadTokens,
       totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens,
-      costUSD: raw.costUSD ?? this.calculateCost(raw),
+      costUSD: raw.costUSD ?? this.calculateCost(usage),
       sessionId,
       projectId,
       provider: this.id,
@@ -127,13 +135,18 @@ export class ClaudeCodeProvider implements UsageProvider {
   /**
    * Calculate cost from tokens using pricing
    */
-  private calculateCost(raw: RawClaudeEntry): number {
+  private calculateCost(usage: {
+    input_tokens: number;
+    output_tokens: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  }): number {
     const pricing = this.getPricing();
     const cost =
-      (raw.usage.input_tokens || 0) * pricing.inputPricePerToken +
-      (raw.usage.output_tokens || 0) * pricing.outputPricePerToken +
-      (raw.usage.cache_creation_input_tokens || 0) * pricing.cacheCreatePricePerToken +
-      (raw.usage.cache_read_input_tokens || 0) * pricing.cacheReadPricePerToken;
+      (usage.input_tokens || 0) * pricing.inputPricePerToken +
+      (usage.output_tokens || 0) * pricing.outputPricePerToken +
+      (usage.cache_creation_input_tokens || 0) * pricing.cacheCreatePricePerToken +
+      (usage.cache_read_input_tokens || 0) * pricing.cacheReadPricePerToken;
 
     return Number(cost.toFixed(6));
   }
@@ -155,16 +168,20 @@ export class ClaudeCodeProvider implements UsageProvider {
    */
   serializeEntry(entry: NormalizedEntry): string {
     const raw: RawClaudeEntry = {
+      type: 'assistant',
       timestamp: entry.timestamp.toISOString(),
-      model: entry.model,
-      usage: {
-        input_tokens: entry.inputTokens,
-        output_tokens: entry.outputTokens,
-        cache_creation_input_tokens: entry.cacheCreationTokens,
-        cache_read_input_tokens: entry.cacheReadTokens,
+      sessionId: entry.sessionId,
+      message: {
+        model: entry.model,
+        role: 'assistant',
+        usage: {
+          input_tokens: entry.inputTokens,
+          output_tokens: entry.outputTokens,
+          cache_creation_input_tokens: entry.cacheCreationTokens,
+          cache_read_input_tokens: entry.cacheReadTokens,
+        },
       },
       costUSD: entry.costUSD,
-      sessionId: entry.sessionId,
     };
     return JSON.stringify(raw);
   }
