@@ -72,16 +72,22 @@ export type MockDataType = 'hobby' | 'pro' | 'proPlus' | 'ultra' | 'teams' | 'en
 
 /**
  * Raw entry format from Claude Code JSONL files
+ * Claude Code stores conversation data with usage info nested inside a message object
  */
 export interface RawClaudeEntry {
+  type: string;
   timestamp: string;
-  model: string;
-  usage: {
-    input_tokens: number;
-    output_tokens: number;
-    cache_creation_input_tokens?: number;
-    cache_read_input_tokens?: number;
+  sessionId?: string;
+  uuid?: string;
+  message: {
+    model: string;
+    role: string;
+    usage?: {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
   };
   costUSD?: number;
-  sessionId?: string;
 }
