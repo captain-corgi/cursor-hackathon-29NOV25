@@ -27,6 +27,15 @@ export interface ElectronAPI {
   getProviders: () => Promise<ProviderInfo[]>;
   toggleProvider: (providerId: string, enabled: boolean) => Promise<void>;
   onUsageUpdated: (callback: (data: UsageData) => void) => () => void;
+
+  // Timeline methods
+  getTimelineData: (timeWindowMs: number, maxPoints?: number) => Promise<any[]>;
+  getTimelineConfig: () => Promise<any>;
+  setTimelineConfig: (config: any) => Promise<void>;
+  exportTimeline: (exportOptions: any) => Promise<Buffer | string>;
+  getTimelineAnalytics: (timeWindowMs: number) => Promise<any>;
+  getMemoryStats: () => Promise<any>;
+  onTimelineUpdated: (callback: (data: any) => void) => () => void;
 }
 
 declare global {

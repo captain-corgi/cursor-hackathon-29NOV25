@@ -5,6 +5,7 @@ import { costCalculator } from './cost-calculator';
 import { settingsManager } from './settings-manager';
 import { cacheManager } from './cache-manager';
 import { providerRegistry } from './providers';
+import { timelineManager } from './timeline';
 
 interface AppStateData {
   entries: NormalizedEntry[];
@@ -75,6 +76,9 @@ export class AppStateManager extends EventEmitter {
    * Initialize - start data loading and refresh timer
    */
   async initialize(): Promise<void> {
+    // Initialize timeline manager
+    timelineManager.initialize();
+
     // Refresh data
     await this.refreshData();
 
@@ -86,6 +90,9 @@ export class AppStateManager extends EventEmitter {
       console.log('File change detected, refreshing...');
       this.refreshData();
     });
+
+    // Forward timeline events
+    this.setupTimelineEventForwarding();
   }
 
   /**
@@ -107,6 +114,9 @@ export class AppStateManager extends EventEmitter {
       const dailyUsage = costCalculator.aggregateCosts(daily);
       const weeklyUsage = costCalculator.aggregateCosts(weekly);
       const monthlyUsage = costCalculator.aggregateCosts(monthly);
+
+      // Process timeline data
+      timelineManager.processEntries(daily);
 
       // Update state
       this.state = {
@@ -349,11 +359,118 @@ export class AppStateManager extends EventEmitter {
       this.startAutoRefresh();
     }
 
+    // Update timeline settings
+    if (newSettings.timelineEnabled !== undefined) {
+      timelineManager.setEnabled(newSettings.timelineEnabled);
+    }
+
+    if (newSettings.timelineTimeWindow) {
+      timelineManager.updateConfig({
+        timeWindowsMs: [newSettings.timelineTimeWindow, ...timelineManager.getConfig().timeWindowsMs.slice(1)]
+      });
+    }
+
+    if (newSettings.timelineVisualizationMode) {
+      timelineManager.updateVisualization({
+        mode: newSettings.timelineVisualizationMode
+      });
+    }
+
+    if (newSettings.timelineProviderColors) {
+      // Provider colors are handled at the renderer level
+      console.log('Provider colors updated:', newSettings.timelineProviderColors);
+    }
+
     // Recheck high usage if threshold changed
     this.checkHighUsage();
 
     // Emit settings changed event
     this.emit('settings-changed', settingsManager.getSettings());
+  }
+
+  /**
+   * Get timeline data for a specific time window
+   * @param timeWindowMs Time window in milliseconds
+   * @param maxPoints Maximum data points to return
+   * @returns Timeline data points
+   */
+  getTimelineData(timeWindowMs: number, maxPoints?: number) {
+    return timelineManager.getTimelineData(timeWindowMs, maxPoints);
+  }
+
+  /**
+   * Get aggregated timeline data for UI rendering
+   * @param timeWindowMs Time window in milliseconds
+   * @param maxPoints Maximum data points
+   * @returns Aggregated timeline points
+   */
+  getAggregatedTimelineData(timeWindowMs: number, maxPoints?: number) {
+    return timelineManager.getAggregatedTimelineData(timeWindowMs, maxPoints);
+  }
+
+  /**
+   * Get timeline analytics for a time window
+   * @param timeWindowMs Time window in milliseconds
+   * @returns Timeline analytics
+   */
+  getTimelineAnalytics(timeWindowMs: number) {
+    return timelineManager.getTimelineAnalytics(timeWindowMs);
+  }
+
+  /**
+   * Get memory statistics for timeline
+   * @returns Memory statistics
+   */
+  getTimelineMemoryStats() {
+    return timelineManager.getMemoryStats();
+  }
+
+  /**
+   * Render micro timeline for system tray
+   * @param timeWindowMs Time window to render
+   * @returns Buffer containing PNG image
+   */
+  renderTimelineForTray(timeWindowMs?: number) {
+    return timelineManager.renderMicroTimeline(timeWindowMs);
+  }
+
+  /**
+   * Export timeline data
+   * @param exportOptions Export configuration
+   * @returns Exported data as Buffer or JSON string
+   */
+  exportTimeline(exportOptions: any) {
+    return timelineManager.exportTimeline(exportOptions);
+  }
+
+  /**
+   * Setup timeline event forwarding
+   */
+  private setupTimelineEventForwarding(): void {
+    // Forward timeline update events to renderer
+    timelineManager.on('timeline-updated', (event) => {
+      this.broadcast('timeline-updated', event);
+    });
+
+    timelineManager.on('timeline-cleared', () => {
+      this.broadcast('timeline-cleared', {});
+    });
+
+    timelineManager.on('buffer-overflow', (event) => {
+      console.warn('Timeline buffer overflow:', event);
+      this.broadcast('timeline-buffer-overflow', event);
+    });
+  }
+
+  /**
+   * Broadcast message to all renderer windows
+   * @param channel Channel name
+   * @param data Data to send
+   */
+  private broadcast(channel: string, data: any): void {
+    // This would be used by IPC handler to broadcast to windows
+    // For now, just emit the event
+    this.emit('broadcast', { channel, data });
   }
 
   /**
@@ -363,6 +480,7 @@ export class AppStateManager extends EventEmitter {
     this.stopAutoRefresh();
     dataLoader.stopWatching();
     providerRegistry.cleanup();
+    timelineManager.cleanup();
   }
 }
 

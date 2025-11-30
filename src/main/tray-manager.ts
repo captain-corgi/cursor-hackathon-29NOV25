@@ -1,6 +1,7 @@
 import { Tray, Menu, nativeImage, MenuItemConstructorOptions, app } from 'electron';
 import path from 'path';
 import { ProviderStats, MenuBarStats } from '../shared/types';
+import { appStateManager } from './app-state';
 
 // Helper to get assets path for both dev and production
 function getAssetPath(assetName: string): string {
@@ -24,6 +25,8 @@ export class TrayManager {
   private callbacks: TrayManagerCallbacks;
   private isAlertState: boolean = false;
   private currentStats: MenuBarStats;
+  private useTimelineTray: boolean = true;
+  private trayUpdateTimer: NodeJS.Timeout | null = null;
 
   constructor(callbacks: TrayManagerCallbacks) {
     this.callbacks = callbacks;
@@ -34,6 +37,7 @@ export class TrayManager {
       lastUpdated: null,
     };
     this.initialize();
+    this.startTimelineUpdates();
   }
 
   private initialize(): void {
@@ -56,7 +60,12 @@ export class TrayManager {
 
   private createIcon(): Electron.NativeImage {
     try {
-      // Load the PNG tray icon
+      // Try to create timeline icon first
+      if (this.useTimelineTray) {
+        return this.createTimelineIcon();
+      }
+
+      // Load the PNG tray icon as fallback
       const iconPath = getAssetPath('tray-icon.png');
       console.log('Loading tray icon from:', iconPath);
       const icon = nativeImage.createFromPath(iconPath);
@@ -84,6 +93,28 @@ export class TrayManager {
     }
   }
 
+  /**
+   * Create timeline-based tray icon
+   */
+  private createTimelineIcon(): Electron.NativeImage {
+    try {
+      const size = process.platform === 'darwin' ? 22 : 16;
+      const timelineBuffer = appStateManager.renderTimelineForTray(6 * 60 * 60 * 1000); // 6 hours
+      const icon = nativeImage.createFromBuffer(timelineBuffer);
+
+      if (!icon.isEmpty()) {
+        return icon.resize({ width: size, height: size });
+      }
+
+      throw new Error('Timeline icon is empty');
+    } catch (error) {
+      console.warn('Failed to create timeline icon, using simple icon:', error);
+      const size = process.platform === 'darwin' ? 22 : 16;
+      const canvas = this.createSimpleIcon(size);
+      return nativeImage.createFromDataURL(canvas);
+    }
+  }
+
   private createSimpleIcon(size: number): string {
     // Create a simple SVG icon and convert to data URL
     const svg = `
@@ -102,26 +133,75 @@ export class TrayManager {
 
   public setAlertState(isAlert: boolean): void {
     this.isAlertState = isAlert;
+    this.updateTrayIcon();
+  }
+
+  /**
+   * Update tray icon with current state
+   */
+  private updateTrayIcon(): void {
     try {
-      // Load the appropriate PNG icon based on alert state
-      const iconName = isAlert ? 'tray-icon-alert.png' : 'tray-icon.png';
-      const iconPath = getAssetPath(iconName);
-      console.log('Loading alert tray icon from:', iconPath);
-      const icon = nativeImage.createFromPath(iconPath);
-      console.log('Alert tray icon loaded successfully, size:', icon.getSize());
+      let icon: Electron.NativeImage;
+
+      if (this.useTimelineTray && !this.isAlertState) {
+        // Use timeline icon for normal state
+        icon = this.createTimelineIcon();
+      } else {
+        // Use static icon for alert state or fallback
+        const iconName = this.isAlertState ? 'tray-icon-alert.png' : 'tray-icon.png';
+        const iconPath = getAssetPath(iconName);
+        console.log('Loading tray icon from:', iconPath);
+        icon = nativeImage.createFromPath(iconPath);
+
+        if (icon.isEmpty()) {
+          throw new Error('Icon is empty');
+        }
+      }
 
       // Resize for platform-specific requirements
       const size = process.platform === 'darwin' ? 22 : 16;
       if (icon.getSize().width !== size || icon.getSize().height !== size) {
-        this.tray?.setImage(icon.resize({ width: size, height: size }));
-      } else {
-        this.tray?.setImage(icon);
+        icon = icon.resize({ width: size, height: size });
       }
-    } catch (error) {
-      console.warn('Failed to load alert tray icon, using fallback:', error);
-      // Fallback to simple colored icon
-      const icon = nativeImage.createFromDataURL(this.createSimpleIcon(process.platform === 'darwin' ? 22 : 16));
+
       this.tray?.setImage(icon);
+    } catch (error) {
+      console.warn('Failed to update tray icon, using fallback:', error);
+      const size = process.platform === 'darwin' ? 22 : 16;
+      const icon = nativeImage.createFromDataURL(this.createSimpleIcon(size));
+      this.tray?.setImage(icon);
+    }
+  }
+
+  /**
+   * Start automatic timeline updates for tray icon
+   */
+  private startTimelineUpdates(): void {
+    // Update timeline icon every 30 seconds
+    this.trayUpdateTimer = setInterval(() => {
+      if (this.useTimelineTray && !this.isAlertState) {
+        this.updateTrayIcon();
+      }
+    }, 30000);
+  }
+
+  /**
+   * Stop timeline updates
+   */
+  private stopTimelineUpdates(): void {
+    if (this.trayUpdateTimer) {
+      clearInterval(this.trayUpdateTimer);
+      this.trayUpdateTimer = null;
+    }
+  }
+
+  /**
+   * Enable or disable timeline tray icons
+   */
+  public setTimelineEnabled(enabled: boolean): void {
+    if (this.useTimelineTray !== enabled) {
+      this.useTimelineTray = enabled;
+      this.updateTrayIcon();
     }
   }
 
@@ -208,7 +288,7 @@ export class TrayManager {
    * Update stats for a specific provider
    */
   public updateProviderStats(providerName: string, stats: Partial<ProviderStats>): void {
-    const providerIndex = this.currentStats.providers.findIndex(p => p.name === providerName);
+    const providerIndex = this.currentStats.providers.findIndex((p: ProviderStats) => p.name === providerName);
     if (providerIndex >= 0) {
       this.currentStats.providers[providerIndex] = {
         ...this.currentStats.providers[providerIndex],
@@ -220,6 +300,7 @@ export class TrayManager {
   }
 
   public destroy(): void {
+    this.stopTimelineUpdates();
     this.tray?.destroy();
     this.tray = null;
   }

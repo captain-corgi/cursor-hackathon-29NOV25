@@ -84,10 +84,10 @@ class Application {
     this.trayManager.updateTooltip(appStateManager.getTooltipText());
     this.trayManager.updateStats(appStateManager.getMenuBarStats());
 
-    console.log('AI Usage Monitor started');
+    // AI Usage Monitor started
   }
 
-  public openApp(): void {
+  public async openApp(): Promise<void> {
     if (this.mainWindow) {
       this.mainWindow.show();
       this.mainWindow.focus();
@@ -113,11 +113,17 @@ class Application {
     ipcHandler.registerWindow(this.mainWindow);
 
     // Load the app
-    const isDev = !app.isPackaged;
+    const isDev = process.env.NODE_ENV === 'development';
+
     if (isDev) {
-      // In dev mode, load from source files directly
-      // __dirname is dist/main/main/, so go up 3 levels to project root
-      this.mainWindow.loadFile(path.join(__dirname, '../../../src/renderer/index.html'));
+      // In dev mode, use Vite dev server
+      const devServerUrl = 'http://localhost:5173';
+      try {
+        await this.mainWindow.loadURL(devServerUrl);
+      } catch (error) {
+        // Fallback to production build
+        this.mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'));
+      }
     } else {
       // In production, __dirname is dist/main/main/, renderer is at dist/renderer/
       this.mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'));

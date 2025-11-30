@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../../shared/types';
+import TimelineSettings from '../components/TimelineSettings';
 
 interface ProviderInfo {
   id: string;
@@ -151,6 +152,14 @@ const Settings: React.FC = () => {
             </div>
             <div className={`toggle-switch ${settings.launchAtLogin ? 'active' : ''}`}></div>
           </div>
+        </section>
+
+        {/* Timeline Settings */}
+        <section className="section">
+          <TimelineSettings
+            settings={settings}
+            onSettingsChange={(updates) => setSettings({ ...settings, ...updates })}
+          />
         </section>
 
         {/* Alerts */}

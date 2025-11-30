@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AggregatedUsage, AppStatus, ModelUsage, ProviderUsage } from '../../shared/types';
+import FullTimeline from '../components/FullTimeline';
 
 interface UsageData {
   daily: AggregatedUsage | null;
@@ -11,9 +12,11 @@ interface UsageData {
 }
 
 type TimePeriod = 'daily' | 'weekly' | 'monthly';
+type ViewMode = 'stats' | 'timeline';
 
 const Dashboard: React.FC = () => {
   const [period, setPeriod] = useState<TimePeriod>('daily');
+  const [viewMode, setViewMode] = useState<ViewMode>('stats');
   const [data, setData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,6 +107,22 @@ const Dashboard: React.FC = () => {
       <div className="page-header">
         <h1 className="page-title">Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* View Mode Toggle */}
+          <div className="view-mode-toggle">
+            <button
+              className={`btn ${viewMode === 'stats' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setViewMode('stats')}
+            >
+              📊 Statistics
+            </button>
+            <button
+              className={`btn ${viewMode === 'timeline' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setViewMode('timeline')}
+            >
+              📈 Timeline
+            </button>
+          </div>
+
           <div className="status-indicator">
             <span
               className={`status-dot ${
@@ -153,181 +172,193 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Period Tabs */}
-        <div className="tabs">
-          <button
-            className={`tab ${period === 'daily' ? 'active' : ''}`}
-            onClick={() => setPeriod('daily')}
-          >
-            Today
-          </button>
-          <button
-            className={`tab ${period === 'weekly' ? 'active' : ''}`}
-            onClick={() => setPeriod('weekly')}
-          >
-            This Week
-          </button>
-          <button
-            className={`tab ${period === 'monthly' ? 'active' : ''}`}
-            onClick={() => setPeriod('monthly')}
-          >
-            This Month
-          </button>
-        </div>
-
-        {/* No Data State */}
-        {!usage && (
-          <div className="empty-state">
-            <div className="empty-state-icon">📊</div>
-            <div className="empty-state-title">No usage data</div>
-            <div className="empty-state-description">
-              No AI usage recorded for this period. Start using Claude Code or Cursor to see
-              statistics here.
-            </div>
+        {/* Timeline View */}
+        {viewMode === 'timeline' && (
+          <div className="timeline-view animate-fade-in">
+            <FullTimeline />
           </div>
         )}
 
-        {/* Stats Grid */}
-        {usage && (
+        {/* Statistics View */}
+        {viewMode === 'stats' && (
           <>
-            <div className="stats-grid animate-fade-in" key={period}>
-              <div className="stat-card">
-                <div className="stat-label">Total Cost</div>
-                <div className="stat-value cost">{formatCost(usage.totalCostUSD)}</div>
-                <div className="stat-change">{usage.entryCount} requests</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Total Tokens</div>
-                <div className="stat-value tokens">{formatTokens(usage.totalTokens)}</div>
-                <div className="stat-change">
-                  {Math.round((usage.inputTokens / usage.totalTokens) * 100)}% input
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Input Tokens</div>
-                <div className="stat-value">{formatTokens(usage.inputTokens)}</div>
-                <div className="stat-change">
-                  ~{formatCost(usage.inputTokens * 0.000003)} estimated
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Output Tokens</div>
-                <div className="stat-value">{formatTokens(usage.outputTokens)}</div>
-                <div className="stat-change">
-                  ~{formatCost(usage.outputTokens * 0.000015)} estimated
-                </div>
-              </div>
+            {/* Period Tabs */}
+            <div className="tabs">
+              <button
+                className={`tab ${period === 'daily' ? 'active' : ''}`}
+                onClick={() => setPeriod('daily')}
+              >
+                Today
+              </button>
+              <button
+                className={`tab ${period === 'weekly' ? 'active' : ''}`}
+                onClick={() => setPeriod('weekly')}
+              >
+                This Week
+              </button>
+              <button
+                className={`tab ${period === 'monthly' ? 'active' : ''}`}
+                onClick={() => setPeriod('monthly')}
+              >
+                This Month
+              </button>
             </div>
 
-            {/* Provider Breakdown */}
-            <section className="section">
-              <div className="section-header">
-                <h2 className="section-title">Provider Breakdown</h2>
-              </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Provider</th>
-                      <th>Requests</th>
-                      <th>Tokens</th>
-                      <th>Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getProviders().length > 0 ? (
-                      getProviders().map((provider) => (
-                        <tr key={provider.providerId}>
-                          <td>
-                            <span
-                              className={`provider-badge ${
-                                provider.providerId === 'claude-code' ? 'claude' : 'cursor'
-                              }`}
-                            >
-                              {provider.providerName}
-                            </span>
-                          </td>
-                          <td>{provider.entryCount}</td>
-                          <td>{formatTokens(provider.totalTokens)}</td>
-                          <td style={{ color: 'var(--accent-success)' }}>
-                            {formatCost(provider.costUSD)}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No provider data available
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* Model Breakdown */}
-            <section className="section">
-              <div className="section-header">
-                <h2 className="section-title">Model Breakdown</h2>
-              </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Model</th>
-                      <th>Requests</th>
-                      <th>Tokens</th>
-                      <th>Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getModels().length > 0 ? (
-                      getModels().map((model) => (
-                        <tr key={model.model}>
-                          <td
-                            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
-                          >
-                            {model.model}
-                          </td>
-                          <td>{model.entryCount}</td>
-                          <td>{formatTokens(model.totalTokens)}</td>
-                          <td style={{ color: 'var(--accent-success)' }}>
-                            {formatCost(model.costUSD)}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                          No model data available
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* Cache Stats */}
-            {(usage.cacheCreationTokens > 0 || usage.cacheReadTokens > 0) && (
-              <section className="section">
-                <div className="section-header">
-                  <h2 className="section-title">Cache Statistics</h2>
+            {/* No Data State */}
+            {!usage && (
+              <div className="empty-state">
+                <div className="empty-state-icon">📊</div>
+                <div className="empty-state-title">No usage data</div>
+                <div className="empty-state-description">
+                  No AI usage recorded for this period. Start using Claude Code or Cursor to see
+                  statistics here.
                 </div>
-                <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              </div>
+            )}
+
+            {/* Stats Grid */}
+            {usage && (
+              <>
+                <div className="stats-grid animate-fade-in" key={period}>
                   <div className="stat-card">
-                    <div className="stat-label">Cache Creation</div>
-                    <div className="stat-value">{formatTokens(usage.cacheCreationTokens)}</div>
-                    <div className="stat-change">tokens created</div>
+                    <div className="stat-label">Total Cost</div>
+                    <div className="stat-value cost">{formatCost(usage.totalCostUSD)}</div>
+                    <div className="stat-change">{usage.entryCount} requests</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-label">Cache Read</div>
-                    <div className="stat-value">{formatTokens(usage.cacheReadTokens)}</div>
-                    <div className="stat-change">tokens read</div>
+                    <div className="stat-label">Total Tokens</div>
+                    <div className="stat-value tokens">{formatTokens(usage.totalTokens)}</div>
+                    <div className="stat-change">
+                      {Math.round((usage.inputTokens / usage.totalTokens) * 100)}% input
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Input Tokens</div>
+                    <div className="stat-value">{formatTokens(usage.inputTokens)}</div>
+                    <div className="stat-change">
+                      ~{formatCost(usage.inputTokens * 0.000003)} estimated
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Output Tokens</div>
+                    <div className="stat-value">{formatTokens(usage.outputTokens)}</div>
+                    <div className="stat-change">
+                      ~{formatCost(usage.outputTokens * 0.000015)} estimated
+                    </div>
                   </div>
                 </div>
-              </section>
+
+                {/* Provider Breakdown */}
+                <section className="section">
+                  <div className="section-header">
+                    <h2 className="section-title">Provider Breakdown</h2>
+                  </div>
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Provider</th>
+                          <th>Requests</th>
+                          <th>Tokens</th>
+                          <th>Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getProviders().length > 0 ? (
+                          getProviders().map((provider) => (
+                            <tr key={provider.providerId}>
+                              <td>
+                                <span
+                                  className={`provider-badge ${
+                                    provider.providerId === 'claude-code' ? 'claude' : 'cursor'
+                                  }`}
+                                >
+                                  {provider.providerName}
+                                </span>
+                              </td>
+                              <td>{provider.entryCount}</td>
+                              <td>{formatTokens(provider.totalTokens)}</td>
+                              <td style={{ color: 'var(--accent-success)' }}>
+                                {formatCost(provider.costUSD)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                              No provider data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                {/* Model Breakdown */}
+                <section className="section">
+                  <div className="section-header">
+                    <h2 className="section-title">Model Breakdown</h2>
+                  </div>
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Requests</th>
+                          <th>Tokens</th>
+                          <th>Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getModels().length > 0 ? (
+                          getModels().map((model) => (
+                            <tr key={model.model}>
+                              <td
+                                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+                              >
+                                {model.model}
+                              </td>
+                              <td>{model.entryCount}</td>
+                              <td>{formatTokens(model.totalTokens)}</td>
+                              <td style={{ color: 'var(--accent-success)' }}>
+                                {formatCost(model.costUSD)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                              No model data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                {/* Cache Stats */}
+                {(usage.cacheCreationTokens > 0 || usage.cacheReadTokens > 0) && (
+                  <section className="section">
+                    <div className="section-header">
+                      <h2 className="section-title">Cache Statistics</h2>
+                    </div>
+                    <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                      <div className="stat-card">
+                        <div className="stat-label">Cache Creation</div>
+                        <div className="stat-value">{formatTokens(usage.cacheCreationTokens)}</div>
+                        <div className="stat-change">tokens created</div>
+                      </div>
+                      <div className="stat-card">
+                        <div className="stat-label">Cache Read</div>
+                        <div className="stat-value">{formatTokens(usage.cacheReadTokens)}</div>
+                        <div className="stat-change">tokens read</div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </>
         )}

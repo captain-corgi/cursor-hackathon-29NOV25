@@ -20,6 +20,7 @@
     "dist:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
+    "canvas": "^3.2.0",
     "chokidar": "^3.5.3"
   },
   "devDependencies": {

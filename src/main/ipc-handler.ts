@@ -5,6 +5,7 @@ import { providerRegistry } from './providers';
 import { autoLaunchManager } from './auto-launch';
 import { notificationManager } from './notification-manager';
 import { IPC_CHANNELS, AppSettings } from '../shared/types';
+import { TIMELINE_IPC_CHANNELS } from '../shared/timeline-types';
 
 /**
  * IPC Handler - manages communication between main and renderer processes
@@ -102,6 +103,49 @@ export class IPCHandler {
       return true;
     });
 
+    // Timeline IPC handlers
+    // Get timeline data
+    ipcMain.handle(TIMELINE_IPC_CHANNELS.GET_TIMELINE_DATA, async (_, timeWindowMs: number, maxPoints?: number) => {
+      return appStateManager.getAggregatedTimelineData(timeWindowMs, maxPoints);
+    });
+
+    // Get timeline configuration
+    ipcMain.handle(TIMELINE_IPC_CHANNELS.GET_TIMELINE_CONFIG, async () => {
+      const settings = settingsManager.getSettings();
+      return {
+        enabled: settings.timelineEnabled,
+        timeWindow: settings.timelineTimeWindow,
+        visualizationMode: settings.timelineVisualizationMode,
+        providerColors: settings.timelineProviderColors,
+      };
+    });
+
+    // Set timeline configuration
+    ipcMain.handle(TIMELINE_IPC_CHANNELS.SET_TIMELINE_CONFIG, async (_, config: any) => {
+      settingsManager.updateSettings({
+        timelineEnabled: config.enabled,
+        timelineTimeWindow: config.timeWindow,
+        timelineVisualizationMode: config.visualizationMode,
+        timelineProviderColors: config.providerColors,
+      });
+      return true;
+    });
+
+    // Export timeline
+    ipcMain.handle(TIMELINE_IPC_CHANNELS.EXPORT_TIMELINE, async (_, exportOptions: any) => {
+      return await appStateManager.exportTimeline(exportOptions);
+    });
+
+    // Get timeline analytics
+    ipcMain.handle(TIMELINE_IPC_CHANNELS.GET_TIMELINE_ANALYTICS, async (_, timeWindowMs: number) => {
+      return appStateManager.getTimelineAnalytics(timeWindowMs);
+    });
+
+    // Get memory statistics
+    ipcMain.handle(TIMELINE_IPC_CHANNELS.GET_MEMORY_STATS, async () => {
+      return appStateManager.getTimelineMemoryStats();
+    });
+
     console.log('IPC handlers registered');
   }
 
@@ -132,6 +176,11 @@ export class IPCHandler {
     // Forward settings changes
     appStateManager.on('settings-changed', (settings) => {
       this.broadcast('settings-updated', settings);
+    });
+
+    // Handle timeline events
+    appStateManager.on('broadcast', ({ channel, data }) => {
+      this.broadcast(channel, data);
     });
   }
 
